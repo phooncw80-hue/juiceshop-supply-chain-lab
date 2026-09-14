@@ -1,30 +1,103 @@
-# Install GuardDog via pip 
-      - name: Install GuardDog & jq 
-        run: | 
-          pip3 install guarddog 
-          sudo apt-get install -y jq 
- 
-     # Parse package.json and run GuardDog scan on each package name 
-      - name: Run GuardDog Dependency Scan 
-        env: 
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
-        run: | 
-          echo "Extracting dependencies from package.json..." 
-          DEPS=$(jq -r '(.dependencies // {}) + (.devDependencies // {}) | keys[]' package.json) 
-           
-          if [ -z "$DEPS" ]; then 
-            echo "No dependencies found to scan." 
-            exit 0 
-          fi 
- 
-          echo "Scanning dependencies with GuardDog..." 
-          for dep in $DEPS; do 
-            echo "----------------------------------------" 
-            echo "Scanning package: $dep" 
-            # Use 'scan' for remote npm registry packages 
-            guarddog npm scan "$dep" \ 
-              --exclude-rules metadata_mismatch \ 
-              --exclude-rules potentially_compromised_email_domain \ 
-              --exclude-rules unclaimed_maintainer_email_domain || true 
-          done 
-        continue-on-error: true
+name: Supply Chain Scan
+2
+ 
+3
+on:
+4
+push:
+5
+branches:
+6
+- main
+7
+pull_request:
+8
+ 
+9
+jobs:
+10
+guarddog-scan:
+11
+runs-on: ubuntu-latest
+12
+ 
+13
+steps:
+14
+- name: Checkout repository
+15
+uses: actions/checkout@v4
+16
+ 
+17
+- name: Set up Python
+18
+uses: actions/setup-python@v5
+19
+with:
+20
+python-version: "3.x"
+21
+ 
+22
+- name: Install GuardDog & jq
+23
+run: |
+24
+pip3 install guarddog
+25
+sudo apt-get update
+26
+sudo apt-get install -y jq
+27
+ 
+28
+- name: Run GuardDog Dependency Scan
+29
+env:
+30
+GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+31
+run: |
+32
+echo "Extracting dependencies from package.json..."
+33
+ 
+34
+DEPS=$(jq -r '(.dependencies // {}) + (.devDependencies // {}) | keys[]' package.json)
+35
+ 
+36
+if [ -z "$DEPS" ]; then
+37
+echo "No dependencies found to scan."
+38
+exit 0
+39
+fi
+40
+ 
+41
+echo "Scanning dependencies with GuardDog..."
+42
+ 
+43
+for dep in $DEPS; do
+44
+echo "----------------------------------------"
+45
+echo "Scanning package: $dep"
+46
+ 
+47
+guarddog npm scan "$dep" \
+48
+--exclude-rules metadata_mismatch \
+49
+--exclude-rules potentially_compromised_email_domain \
+50
+--exclude-rules unclaimed_maintainer_email_domain || true
+51
+done
+52
+continue-on-error: true

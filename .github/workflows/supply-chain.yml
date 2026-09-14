@@ -24,80 +24,66 @@ runs-on: ubuntu-latest
 13
 steps:
 14
-- name: Checkout repository
+- uses: actions/checkout@v4
 15
-uses: actions/checkout@v4
+ 
 16
- 
-17
 - name: Set up Python
-18
+17
 uses: actions/setup-python@v5
-19
+18
 with:
-20
+19
 python-version: "3.x"
+20
+ 
 21
- 
-22
 - name: Install GuardDog & jq
+22
+run: |
 23
-run: |
-24
 pip3 install guarddog
-25
+24
 sudo apt-get update
-26
+25
 sudo apt-get install -y jq
+26
+ 
 27
- 
-28
 - name: Run GuardDog Dependency Scan
-29
+28
 env:
-30
+29
 GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-31
+30
 run: |
-32
-echo "Extracting dependencies from package.json..."
-33
- 
-34
+31
 DEPS=$(jq -r '(.dependencies // {}) + (.devDependencies // {}) | keys[]' package.json)
-35
+32
  
-36
+33
 if [ -z "$DEPS" ]; then
-37
-echo "No dependencies found to scan."
-38
+34
+echo "No dependencies found."
+35
 exit 0
-39
+36
 fi
-40
+37
  
-41
-echo "Scanning dependencies with GuardDog..."
-42
- 
-43
+38
 for dep in $DEPS; do
-44
-echo "----------------------------------------"
-45
-echo "Scanning package: $dep"
-46
- 
-47
+39
 guarddog npm scan "$dep" \
-48
+40
 --exclude-rules metadata_mismatch \
-49
+41
 --exclude-rules potentially_compromised_email_domain \
-50
+42
 --exclude-rules unclaimed_maintainer_email_domain || true
-51
+43
 done
-52
+44
 continue-on-error: true
+45
+``
